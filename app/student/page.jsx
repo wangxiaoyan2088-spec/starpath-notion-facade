@@ -1,43 +1,107 @@
-'use client';
-import { useState } from 'react';
+"use client";
+import { useEffect, useState } from "react";
 
-export default function Student() {
-  const [file, setFile] = useState(null);
-  const [msg, setMsg] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function StudentPage() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
-  async function onSubmit(e) {
-    e.preventDefault();
-    setMsg('');
-    setLoading(true);
-    const form = new FormData(e.currentTarget);
-    if (file) form.set('file', file);
-    const res = await fetch('/api/submit', { method:'POST', body: form });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) return setMsg('提交失败：' + (data.error || res.status));
-    setMsg('提交成功！参考ID：' + data.pageId);
-    e.currentTarget.reset(); setFile(null);
-  }
+  useEffect(() => {
+    fetch("/api/students")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.ok) setRows(res.data);
+        else setErr(res.error || "加载失败");
+      })
+      .catch((e) => setErr(e.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
-    <main style={{minHeight:'100vh'}}>
-      <header style={{padding:'12px 16px', borderBottom:'1px solid rgba(255,255,255,.15)', background:'#0f1430'}}>学生提交</header>
-      <form onSubmit={onSubmit} style={{maxWidth:720, margin:'24px auto', display:'grid', gap:12}}>
-        <input name="name" required placeholder="姓名 Name" style={inp}/>
-        <input type="email" name="email" required placeholder="邮箱 Email" style={inp}/>
-        <select name="role" defaultValue="Student" style={inp}>
-          <option>Student</option>
-        </select>
-        <textarea name="notes" placeholder="备注 / 说明 Notes" rows={6} style={area}/>
-        <input type="file" name="file" onChange={e=>setFile(e.target.files?.[0]||null)} style={inp}/>
-        <button disabled={loading} style={btn}>{loading?'提交中…':'提交'}</button>
-        {msg && <div style={{padding:12, background:'#13214f', borderRadius:12}}>{msg}</div>}
-      </form>
+    <main style={{ padding: 24 }}>
+      <h1 style={{ marginBottom: 12 }}>学生列表（来自 Notion）</h1>
+      {loading && <p>加载中…</p>}
+      {err && <p style={{ color: "tomato" }}>错误：{err}</p>}
+
+      {!loading && !err && (
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              border: "1px solid #334",
+            }}
+          >
+            <thead>
+              <tr>
+                <Th>姓名</Th>
+                <Th>Email</Th>
+                <Th>角色</Th>
+                <Th>备注</Th>
+                <Th>文件</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <Td>{r.name}</Td>
+                  <Td>{r.email}</Td>
+                  <Td>{r.role}</Td>
+                  <Td>{r.notes}</Td>
+                  <Td>
+                    {r.files && r.files.length > 0 ? (
+                      r.files.map((u, i) => (
+                        <a key={i} href={u} target="_blank" rel="noreferrer">
+                          文件{i + 1}
+                        </a>
+                      ))
+                    ) : (
+                      <span style={{ opacity: 0.6 }}>无</span>
+                    )}
+                  </Td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <Td colSpan={5} style={{ textAlign: "center", opacity: 0.7 }}>
+                    暂无数据
+                  </Td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </main>
   );
 }
 
-const inp = { padding:'12px 14px', borderRadius:12, border:'1px solid rgba(255,255,255,.15)', background:'#0f1430', color:'#eef1ff' };
-const area = { ...inp };
-const btn = { ...inp, cursor:'pointer', background:'#4158ff', border:'none', fontWeight:700 };
+// 简易表格样式组件
+function Th({ children }) {
+  return (
+    <th
+      style={{
+        textAlign: "left",
+        padding: "10px 8px",
+        borderBottom: "1px solid #334",
+        background: "rgba(255,255,255,.04)",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+function Td({ children, ...rest }) {
+  return (
+    <td
+      {...rest}
+      style={{
+        padding: "10px 8px",
+        borderBottom: "1px solid #2a2f45",
+        verticalAlign: "top",
+      }}
+    >
+      {children}
+    </td>
+  );
+}
