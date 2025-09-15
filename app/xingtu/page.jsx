@@ -1,19 +1,16 @@
 // app/xingtu/page.jsx
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
-import notion from "@/lib/notion";
-import { DB_MAP } from "@/lib/dbs";
-
-const DB_ID = DB_MAP.xingtu;
+import { getData } from "@/lib/notion";
 
 const getText = (prop) =>
   prop?.title?.map(t => t.plain_text).join("") ||
   prop?.rich_text?.map(t => t.plain_text).join("") || "";
 
 export default async function XingtuPage() {
-  const resp = await notion.databases.query({ database_id: DB_ID, page_size: 50 });
-  const rows = resp.results || [];
+  const rows = await getData("xingtu");
 
   return (
     <main style={{ maxWidth: 1000, margin: "40px auto", fontFamily: "system-ui" }}>
