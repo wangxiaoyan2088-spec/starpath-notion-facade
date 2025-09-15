@@ -1,19 +1,19 @@
-import { Client } from "@notionhq/client";
+// app/xingtu/page.jsx
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import notion from "@/lib/notion";
 import { DB_MAP } from "@/lib/dbs";
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const DB_ID = DB_MAP.xingtu;
 
+const getText = (prop) =>
+  prop?.title?.map(t => t.plain_text).join("") ||
+  prop?.rich_text?.map(t => t.plain_text).join("") || "";
+
 export default async function XingtuPage() {
-  // 1) 读取数据
   const resp = await notion.databases.query({ database_id: DB_ID, page_size: 50 });
   const rows = resp.results || [];
-
-  // 2) 简单取几列（按你库的字段名改）
-  const safeText = (prop) =>
-    prop?.rich_text?.map((t) => t.plain_text).join("") ||
-    prop?.title?.map((t) => t.plain_text).join("") ||
-    "";
 
   return (
     <main style={{ maxWidth: 1000, margin: "40px auto", fontFamily: "system-ui" }}>
@@ -30,12 +30,12 @@ export default async function XingtuPage() {
         <tbody>
           {rows.length === 0 ? (
             <tr><td colSpan={4} style={{ padding: 12 }}>暂无数据</td></tr>
-          ) : rows.map((r) => {
+          ) : rows.map(r => {
               const p = r.properties;
-              const task = safeText(p["任务"]);
+              const task   = getText(p["任务"]);
               const status = p["状态"]?.status?.name || "";
               const owners = (p["责任人"]?.people || []).map(u => u.name || u.person?.email).join("、");
-              const due = p["截止日期"]?.date?.start || "";
+              const due    = p["截止日期"]?.date?.start || "";
               return (
                 <tr key={r.id}>
                   <td style={{ border: "1px solid #eee", padding: 8 }}>{task}</td>
